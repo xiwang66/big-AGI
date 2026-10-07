@@ -34,13 +34,16 @@ interface UXLabsStore {
   labsSingleDollarLatex: boolean;
   setLabsSingleDollarLatex: (labsSingleDollarLatex: boolean) => void;
 
+  labsUserMarkdown: boolean; // user messages render as markdown (user text flavor), not plain text
+  setLabsUserMarkdown: (labsUserMarkdown: boolean) => void;
+
 }
 
 export const useUXLabsStore = create<UXLabsStore>()(
   persist(
     (set) => ({
 
-      labsAdaptiveRendering: 'off', // opt-in while in Labs
+      labsAdaptiveRendering: 'auto', // lighter rendering of the block being written, once streaming gets heavy
       setLabsAdaptiveRendering: (labsAdaptiveRendering: 'auto' | 'on' | 'off' | 'debug') => set({ labsAdaptiveRendering }),
 
       labsUnlockRefresh: false,
@@ -64,14 +67,23 @@ export const useUXLabsStore = create<UXLabsStore>()(
       labsSingleDollarLatex: false,
       setLabsSingleDollarLatex: (labsSingleDollarLatex: boolean) => set({ labsSingleDollarLatex }),
 
+      labsUserMarkdown: false,
+      setLabsUserMarkdown: (labsUserMarkdown: boolean) => set({ labsUserMarkdown }),
+
     }),
     {
       name: 'app-ux-labs',
 
       // Migrations:
       // - 1: turn on the screen capture by default (subsequently removed)
-      version: 1,
-      migrate: (state: any): UXLabsStore => state, // no shape change here: passthrough re-stamps older blobs, keeps unknown fields
+      // - 2: turn on adaptive rendering by default ('off' was the Labs default, so it moves to 'auto' once)
+      version: 2,
+      migrate: (state: any, fromVersion: number): UXLabsStore => {
+        // passthrough re-stamps older blobs, keeps unknown fields
+        if (fromVersion < 2 && state?.labsAdaptiveRendering === 'off')
+          return { ...state, labsAdaptiveRendering: 'auto' };
+        return state;
+      },
 
     },
   ),
